@@ -1,4 +1,5 @@
-apiVersion: extensions/v1beta1
+#apiVersion: extensions/v1beta1
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: cloud-native-go
@@ -46,3 +47,6 @@ spec:
         env:
         - name: PORT
           value: "8080"
+  selector:
+    matchLabels:
+      app: cloud-native-go
