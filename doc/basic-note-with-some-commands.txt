@@ -1,0 +1,148 @@
+
+We can set environment variable using the following command-
+$ export PORT=9090 // It was not working on mac os x
+
+Docker & Simple Microservice
+========================
+1. Build your Dockerfile
+2. $
+3. docker build -t cloud-native-go:1.0.1 .
+4. Run the docker images
+5. $ docker run -it -p 8080:8080 cloud-native-go:1.0.1
+6. Or run on the deamon background
+7. $ docker run --name cloud-native-go -d -p 8080:8080 cloud-native-go:1.0.1
+8. -
+9. To see CPU and Memory limit using
+10. $ docker stats
+11.
+
+Kubernates:
+=========
+You have to install kubernates and minikubes from kubernates website's guide
+
+Make Sure you have the oracle Virtualbox installed in your pc otherwise the kubernates will not work. After installing the please run the following command
+- $ minikube start (it will create kubernates cluster)
+
+Commands:
+-------------------
+$ kubectl cluster-info
+Result:
+➜  ~ kubectl cluster-info
+Kubernetes master is running at https://192.168.99.100:8443
+KubeDNS is running at https://192.168.99.100:8443/api/v1/namespaces/kube-system/services/kube-dns:dns/proxy
+
+To further debug and diagnose cluster problems, use 'kubectl cluster-info dump'.
+
+To display kubernets dashboard on the browser
+$ minikube dashboard
+
+To get all nodes
+$ kubectl get nodes
+
+To get all config context
+$ kubectl config get-contexts
+
+Use config context
+$ kubectl config use-context context-name
+
+To point minikube into the docker environment
+$ minikube docker-env
+It will give you the instruction to run the following command
+$ eval $(minikube docker-env)
+
+To create a new pod-
+You have to write a k8s-pod.yml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: cloud-native-go
+  labels:
+    language: go
+    env: test
+spec:
+  containers:
+  - image: cloud-native-go:1.0.1 // this name should be valid as image
+    name: cloud-native-go
+    ports:
+    - containerPort: 8080
+      protocol: TCP
+
+$ kubectl create -f k8s-pod.yml
+$ kubectl get pods
+$ kubectl describe pod [ pod name, eg cloud-native-go]
+To access the prod
+$ kubectl port-forward cloud-native-go 8080:8080
+Show some hidden labels
+$ kubectl get pods -o wide -L env
+
+To get namespaces
+$ kubectl get ns
+
+Create own namespace
+$ kubectl create -f k8s-namespace.yml
+
+Get all pods which is associated to the namespae
+$ kubectl get pods --namespace cloud-native-go
+
+Create new pod with namspace
+$ kubectl create -f k8s-pod.yml --namespace cloud-native-go
+
+IMPORTANT:
+If you delete any namespace, remember all pods will be deleted from this namespace
+$ kubectl delete -f k8s-namespace.yml
+
+================================
+= Use CPU, Memory, Multiple Replicas =
+================================
+- Make k8s-development.yml
+- REMEMBER: you should delete all running pods from
+- $ kubectl create -f k8s-development.yml
+- $ kubectl get deployments,pods,rs
+- Then you will show the list of replicas are running with more details
+- In k8s-development.yml file has the following content-
+- limits:
+            memory: "128Mi"
+            cpu: "250m"
+- Be careful for the above limits section. If you add some low memory and cup in the limits section your pods will be killed and restarting from kubernetes
+- After modifying the k8s-development.yml file you need to run the following commnad
+- $ kubectl apply -f k8s-development.yml
+- $ kubectl describe development cloud-native-go
+- (Sometimes its depend on the services)
+- create a k8s-services.yml file
+- $ kubectl create -f k8s-services.yml
+- $ kubectl get services
+=====
+Scale ( Horizontal scaling)
+====
+$ kubectl get pods -w
+$ kubectl create -f deployment k8s-development.yml --record=true
+$ kubectl scale deployment cloud-native-go --replicas=5
+Reduce replicas and scale down
+$ kubectl scale deployment cloud-native-go --replicas=3
+It will terminating two replicas/pods from current pods
+
+Rollout to the last command
+last command had --replicas=5
+$ kubectl rollout history deployment cloud-native-go
+Now it has --replicas=3
+
+
+====
+Change your base image version
+====
+$ kubectl get pods --output=wide (details with ip address)
+$ docker build -t cloud-native-go:1.0.2 .
+$ kubectl set image deployment cloud-native-go cloud-native-go=cloud-native-go:1.0.2
+
+If we want to we rollback again to the last replicas set
+$ kubectl rollout undo deployment cloud-native-go
+
+To View your app
+$ kubectl config view
+Please find the cluster ip:
+For me it was : 192.168.99.100
+Now run
+$ kubectl get service
+find the NodePort
+For me it was: 31780
+So now visit: 192.168.99.100:31780
